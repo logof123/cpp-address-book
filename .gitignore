@@ -1,0 +1,7 @@
+# Compiled executables
+*.exe
+*.o
+*.out
+
+# Sensitive data files
+contacts.csv
