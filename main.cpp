@@ -1,188 +1,186 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <fstream>   // <--- 新增：文件流
-#include <sstream>   // <--- 新增：字符串流
 #include <limits>
 
-// Contact 结构体 (无变化)
-struct Contact {
-    std::string name;
-    std::string phone;
-    std::string email;
+// vvvvv 新增的头文件，用于调用Windows API vvvvv
+#include <windows.h> 
+
+// Contact 结构体保持不变
+struct Person {
+    std::string m_Name;
+    int m_Sex;
+    int m_Age;
+    std::string m_Phone;
+    std::string m_Addr;
 };
 
+// Addressbooks 结构体保持不变
+struct Addressbooks {
+    std::vector<Person> PersonArr;
+};
 
-// *** 新增函数 ***
-// 函数：将联系人保存到文件
-void saveContacts(const std::vector<Contact>& contacts, const std::string& filename) {
-    // 1. 创建一个输出文件流对象
-    std::ofstream outFile(filename);
-    if (!outFile) { // 检查文件是否成功打开
-        std::cerr << "Error: Could not open file for writing." << std::endl;
-        return;
-    }
-    // 2. 遍历 vector
-    for (const auto& contact : contacts) {
-        // 3. 按 CSV 格式写入文件，用逗号分隔，用换行符结束一行
-        outFile << contact.name << "," << contact.phone << "," << contact.email << std::endl;
-    }
-    // outFile 对象在函数结束时会自动关闭文件
-    std::cout << "Contacts saved successfully." << std::endl;
-}
-
-// *** 新增函数 ***
-// 函数：从文件加载联系人
-void loadContacts(std::vector<Contact>& contacts, const std::string& filename) {
-    // 1. 创建一个输入文件流对象
-    std::ifstream inFile(filename);
-    if (!inFile) { // 如果文件打不开（比如第一次运行还不存在），不是错误，直接返回
-        return;
-    }
-
-    std::string line;
-    // 2. 每次从文件中读取一行，存入 line 变量
-    while (std::getline(inFile, line)) {
-        // 3. 为这一行创建一个字符串流，方便解析
-        std::stringstream ss(line);
-        std::string name, phone, email;
-
-        // 4. 使用 getline 从字符串流中按逗号分割提取数据
-        if (std::getline(ss, name, ',') && std::getline(ss, phone, ',') && std::getline(ss, email)) {
-            contacts.push_back({name, phone, email});
-        }
-    }
-}
-
-
-// 函数：显示一个联系人的详情
-void printContact(const Contact& contact) {
-    std::cout << "  Name:  " << contact.name << std::endl;
-    std::cout << "  Phone: " << contact.phone << std::endl;
-    std::cout << "  Email: " << contact.email << std::endl;
-    std::cout << "-------------------------" << std::endl;
-}
-
-// viewContacts 函数 (稍作修改，调用 printContact)
-void viewContacts(const std::vector<Contact>& contacts) {
-    if (contacts.empty()) {
-        std::cout << "Address book is empty." << std::endl;
-        return;
-    }
-    std::cout << "\n--- All Contacts ---" << std::endl;
-    for (const auto& contact : contacts) {
-        printContact(contact);
-    }
-}
-
-// addContact 函数 (无变化)
-void addContact(std::vector<Contact>& contacts) {
-    Contact newContact;
-    std::cout << "Enter name: ";
-    std::getline(std::cin, newContact.name);
-    std::cout << "Enter phone number: ";
-    std::getline(std::cin, newContact.phone);
-    std::cout << "Enter email address: ";
-    std::getline(std::cin, newContact.email);
-    contacts.push_back(newContact);
-    std::cout << "Contact added successfully!" << std::endl;
-}
-
-// searchContact 函数 (稍作修改，调用 printContact)
-void searchContact(const std::vector<Contact>& contacts) {
-    std::string searchName;
-    std::cout << "Enter name to search: ";
-    std::getline(std::cin, searchName);
-
-    bool found = false;
-    for (const auto& contact : contacts) {
-        if (contact.name.find(searchName) != std::string::npos) {
-            if (!found) {
-                std::cout << "\n--- Search Results ---" << std::endl;
-            }
-            printContact(contact);
-            found = true;
-        }
-    }
-    if (!found) {
-        std::cout << "No contact found with that name." << std::endl;
-    }
-}
-
-// deleteContact 函数 (无变化)
-void deleteContact(std::vector<Contact>& contacts) {
-    if (contacts.empty()) {
-        std::cout << "Address book is empty, nothing to delete." << std::endl;
-        return;
-    }
-    std::string nameToDelete;
-    std::cout << "Enter the exact name of the contact to delete: ";
-    std::getline(std::cin, nameToDelete);
-
-    bool found = false;
-    for (auto it = contacts.begin(); it != contacts.end(); ) {
-        if (it->name == nameToDelete) {
-            it = contacts.erase(it);
-            found = true;
-            std::cout << "Contact '" << nameToDelete << "' deleted successfully." << std::endl;
-            break;
-        } else {
-            ++it;
-        }
-    }
-    if (!found) {
-        std::cout << "Contact '" << nameToDelete << "' not found." << std::endl;
-    }
-}
-
-// showMenu 函数 (无变化)
 void showMenu() {
-    std::cout << "\n===== Address Book Menu =====" << std::endl;
-    std::cout << "1. Add Contact" << std::endl;
-    std::cout << "2. View All Contacts" << std::endl;
-    std::cout << "3. Search Contact" << std::endl;
-    std::cout << "4. Delete Contact" << std::endl;
-    std::cout << "5. Save and Exit" << std::endl;
-    std::cout << "===========================" << std::endl;
-    std::cout << "Enter your choice: ";
+    std::cout << "***************************" << std::endl;
+    std::cout << "*****  1. 添加联系人  *****" << std::endl;
+    std::cout << "*****  2. 显示联系人  *****" << std::endl;
+    std::cout << "*****  3. 删除联系人  *****" << std::endl;
+    std::cout << "*****  4. 查找联系人  *****" << std::endl;
+    std::cout << "*****  5. 修改联系人  *****" << std::endl;
+    std::cout << "*****  6. 清空联系人  *****" << std::endl;
+    std::cout << "*****  0. 退出通讯录  *****" << std::endl;
+    std::cout << "***************************" << std::endl;
 }
 
+// ... 此处省略 addPerson, showPerson 等函数，它们无需任何改动 ...
+void addPerson(Addressbooks &abs) {
+    Person p;
+    std::cout << "请输入姓名：" << std::endl;
+    std::cin >> p.m_Name;
+    std::cout << "请输入性别：" << std::endl;
+    std::cout << "1 --- 男" << std::endl;
+    std::cout << "2 --- 女" << std::endl;
+    while (true) {
+        std::cin >> p.m_Sex;
+        if (p.m_Sex == 1 || p.m_Sex == 2) { break; }
+        std::cout << "输入有误，请重新输入" << std::endl;
+    }
+    std::cout << "请输入年龄：" << std::endl;
+    std::cin >> p.m_Age;
+    std::cout << "请输入电话：" << std::endl;
+    std::cin >> p.m_Phone;
+    std::cout << "请输入地址：" << std::endl;
+    std::cin >> p.m_Addr;
+    abs.PersonArr.push_back(p);
+    std::cout << "添加成功" << std::endl;
+}
+void showPerson(const Addressbooks &abs) {
+    if (abs.PersonArr.empty()) {
+        std::cout << "通讯录为空" << std::endl;
+    } else {
+        for (size_t i = 0; i < abs.PersonArr.size(); i++) {
+            std::cout << "姓名：" << abs.PersonArr[i].m_Name << "\t";
+            std::cout << "性别：" << (abs.PersonArr[i].m_Sex == 1 ? "男" : "女") << "\t";
+            std::cout << "年龄：" << abs.PersonArr[i].m_Age << "\t";
+            std::cout << "电话：" << abs.PersonArr[i].m_Phone << "\t";
+            std::cout << "地址：" << abs.PersonArr[i].m_Addr << std::endl;
+        }
+    }
+}
+int isExist(const Addressbooks &abs, const std::string &name) {
+    for (size_t i = 0; i < abs.PersonArr.size(); i++) {
+        if (abs.PersonArr[i].m_Name == name) { return i; }
+    }
+    return -1;
+}
+void deletePerson(Addressbooks &abs) {
+    std::cout << "请输入要删除的联系人姓名：" << std::endl;
+    std::string name;
+    std::cin >> name;
+    int ret = isExist(abs, name);
+    if (ret != -1) {
+        abs.PersonArr.erase(abs.PersonArr.begin() + ret);
+        std::cout << "删除成功" << std::endl;
+    } else {
+        std::cout << "查无此人" << std::endl;
+    }
+}
+void findPerson(const Addressbooks &abs) {
+    std::cout << "请输入要查找的联系人姓名：" << std::endl;
+    std::string name;
+    std::cin >> name;
+    int ret = isExist(abs, name);
+    if (ret != -1) {
+        std::cout << "姓名：" << abs.PersonArr[ret].m_Name << "\t";
+        std::cout << "性别：" << (abs.PersonArr[ret].m_Sex == 1 ? "男" : "女") << "\t";
+        std::cout << "年龄：" << abs.PersonArr[ret].m_Age << "\t";
+        std::cout << "电话：" << abs.PersonArr[ret].m_Phone << "\t";
+        std::cout << "地址：" << abs.PersonArr[ret].m_Addr << std::endl;
+    } else {
+        std::cout << "查无此人" << std::endl;
+    }
+}
+void modifyPerson(Addressbooks &abs) {
+    std::cout << "请输入要修改的联系人姓名：" << std::endl;
+    std::string name;
+    std::cin >> name;
+    int ret = isExist(abs, name);
+    if (ret != -1) {
+        Person &p = abs.PersonArr[ret];
+        std::cout << "请输入新的姓名：" << std::endl;
+        std::cin >> p.m_Name;
+        std::cout << "请输入新的性别：" << std::endl;
+        std::cout << "1 --- 男" << std::endl;
+        std::cout << "2 --- 女" << std::endl;
+        while (true) {
+            std::cin >> p.m_Sex;
+            if (p.m_Sex == 1 || p.m_Sex == 2) { break; }
+            std::cout << "输入有误，请重新输入" << std::endl;
+        }
+        std::cout << "请输入新的年龄：" << std::endl;
+        std::cin >> p.m_Age;
+        std::cout << "请输入新的电话：" << std::endl;
+        std::cin >> p.m_Phone;
+        std::cout << "请输入新的地址：" << std::endl;
+        std::cin >> p.m_Addr;
+        std::cout << "修改成功" << std::endl;
+    } else {
+        std::cout << "查无此人" << std::endl;
+    }
+}
+void cleanPerson(Addressbooks &abs) {
+    abs.PersonArr.clear();
+    std::cout << "通讯录已清空" << std::endl;
+}
+void clearScreen() { std::cout << std::string(50, '\n'); }
+void pause() {
+    std::cout << "\n按 Enter 键继续..." << std::endl;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::cin.get();
+}
 
-// *** main 函数最终版 ***
 int main() {
-    std::vector<Contact> contacts;
-    const std::string filename = "contacts.csv"; // 定义数据文件名
+    // vvvvv 新增的核心代码，设置控制台输出编码为 UTF-8 vvvvv
+    SetConsoleOutputCP(CP_UTF8);
 
-    // *** 关键步骤1：程序启动时，加载数据 ***
-    loadContacts(contacts, filename);
+    Addressbooks abs;
+    int select = 0;
 
-    int choice;
     while (true) {
         showMenu();
-        std::cin >> choice;
+        std::cout << "请输入您的选择：" << std::endl;
+        std::cin >> select;
 
-        if (std::cin.fail()) {
-            std::cout << "Invalid input. Please enter a number." << std::endl;
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            continue;
+        switch (select) {
+        case 1:
+            addPerson(abs);
+            break;
+        case 2:
+            showPerson(abs);
+            break;
+        case 3:
+            deletePerson(abs);
+            break;
+        case 4:
+            findPerson(abs);
+            break;
+        case 5:
+            modifyPerson(abs);
+            break;
+        case 6:
+            cleanPerson(abs);
+            break;
+        case 0:
+            std::cout << "欢迎下次使用" << std::endl;
+            return 0;
+        default:
+            std::cout << "输入有误，请重新输入" << std::endl;
+            break;
         }
         
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-        switch (choice) {
-            case 1: addContact(contacts); break;
-            case 2: viewContacts(contacts); break;
-            case 3: searchContact(contacts); break;
-            case 4: deleteContact(contacts); break;
-            case 5:
-                // *** 关键步骤2：程序退出前，保存数据 ***
-                saveContacts(contacts, filename);
-                std::cout << "Exiting program. Goodbye!" << std::endl;
-                return 0;
-            default:
-                std::cout << "Invalid choice. Please try again." << std::endl;
-        }
+        pause();
+        clearScreen();
     }
+
     return 0;
 }
